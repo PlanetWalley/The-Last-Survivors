@@ -34,6 +34,7 @@
             var player1_money = 30;
             var player2_money = 30;
             var player2_money_add = 0.0001
+            var ai_soldier_probability_when_buy_dragon = 0.4
                 
             var player1_soldiers = []
             var player2_soldiers = []
@@ -648,18 +649,23 @@
             version_label.addEventListener('touchstart', function(){
                 alert("No... Don't touch me. go touch Aaron");
             })
+            
 
             menu_scene.addChild(single_player_button);
             menu_scene.addChild(multiplayer_button);
             menu_scene.addChild(introduction_button);
             menu_scene.addChild(version_label);
-            // game.loadingScene = menu_scene;
-            
+
             game.pushScene(menu_scene)
 
 
 
             game.onload = function() {
+                // set flag image
+                // var flag_image = new Sprite(800, 625);
+                // flag_image.image = game.assets['endflag.png'];
+                // menu_scene.addChild(flag_image);
+
 
                 console.log("Start Game") // start game
                 // on load
@@ -744,8 +750,15 @@
                             player2_money = player2_money - buy['dragon'] // buy dragon
                             makeEnemyDragon(randomlyChooseLine());
                             // buy knight
-                            if(Math.random(0,1)>0.5){
-                                makeEnemyKnight(randomlyChooseLine());
+                            // produce enemy knight
+                            var p = ai_soldier_probability_when_buy_dragon
+                            ai_soldier_probability_when_buy_dragon = ai_soldier_probability_when_buy_dragon + 0.01;
+                            if (ai_soldier_probability_when_buy_dragon>=0.75){
+                                ai_soldier_probability_when_buy_dragon = 0.75
+                            }
+                            while(Math.random(0,1)<p){
+                                p = p - 0.1;
+                                makeEnemyKnight(randomlyChooseLine());   
                             }
                         }
                         if (player2_money >= buy['knight'] && Math.random(0,1) - player2_money_add >0.6) {
