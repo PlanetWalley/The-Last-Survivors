@@ -1,0 +1,886 @@
+<html>
+    
+    <head>
+        <title>The Last Survivors</title>
+        <meta charset='utf8'></meta>
+        <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1.0">
+        <!-- include enchant.js-->
+        <!-- I tried enchant.min.js but it doesn't work -->
+        <!-- <script src="enchant.min.js"></script> -->
+        <!-- <script src="Player.js"></script> -->
+    </head>
+    
+    <body>this is body hello</body>
+    <script src="enchant.js"></script>
+    <script>
+        window.onload = function() {
+            // how much is one knight
+            var buy = {
+                bear: 90,
+                knight: 8,
+                dragon: 90
+            }
+            
+            
+            var SINGLE_PLAYER_MODE = 1
+            var MULTI_PLAYER_MODE  = 2
+
+            var Player1_Score = 0;
+            var Player2_Score = 0;
+
+            // var player_mode = SINGLE_PLAYER_MODE;
+            var player_mode = MULTI_PLAYER_MODE
+
+            var player1_money = 30;
+            var player2_money = 30;
+            var player2_money_add = 0.0001
+                
+            var player1_soldiers = []
+            var player2_soldiers = []
+
+
+            var width = 480
+            var height = 320
+
+
+            var insideBoundary = function(obj){
+                var y = obj.y
+                if(y<=11*16 && y>=6*16){
+                    return true
+                }
+                else return false
+            }
+
+            // randomly choose three lines
+            var three_lines = [96, 112, 128, 144, 160]
+            var randomlyChooseLine = function() {
+                var rand = parseInt(Math.random(0, 1) * 5)
+                return three_lines[rand]
+            }
+
+            var makeDamage = function(obj){
+                /*
+                    3  5 
+                    3 4 5
+                */
+                var max_damage = obj.max_damage;
+                var min_damage = obj.min_damage
+                var rand = Math.random(0,1)*(max_damage - min_damage)+min_damage
+                return parseInt(rand)
+            }
+
+            // create game
+            enchant();
+            // enchant.Sound.enabledInMobileSafari = true;
+            var game = new Game(width, height);
+            game.preload('map0.png', 'map2.png', 'chara5.png', 'chara7.png', 'bigmonster1.gif', 'space3.png', 'castle.png', 'chara6.png', 'gameover.wav', 'gameover.png', 'endflag.png'); // load images
+
+
+            var endgame = function() {
+                var GameOver = new Sprite(189, 97)
+                GameOver.x = 100;
+                GameOver.y = 50;
+                GameOver.scale(width / 189 * 0.5, height / 97 * 0.5);
+                GameOver.image = game.assets['gameover.png'];
+                game.rootScene.addChild(GameOver)
+                
+                var flag = new Sprite(800, 625);
+                flag.scale(width / 800 * 0.5, height / 625 * 0.5);
+                flag.x = -200;
+                flag.y = -200;
+                flag.image = game.assets['endflag.png'];
+                game.rootScene.addChild(flag)
+            }
+
+          
+
+            /*
+    Create Map
+*/
+            var createMap = function() {
+                var base_map = new Map(16, 16);
+                var createBaseMap = function(frame_num, width, height) {
+                    var output = []
+                    for (var i = 0; i < width; i++) {
+                        output.push([])
+                        for (var j = 0; j < height; j++) {
+                            output[i].push(frame_num)
+                        }
+                    }
+                    return output
+                }
+                // grass data 
+                base_map.image = game.assets['map2.png']
+                base_map.loadData(createBaseMap(18, 16, 30));
+                game.rootScene.addChild(base_map)
+
+                var map = new Map(16, 16);
+                map.image = game.assets['map2.png'];
+                var map_data = [
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, 12, 12, 12, - 1, - 1, - 1, 12, 12, 12, - 1, - 1, - 1, 12, 12, 12, - 1, - 1, - 1, 12, 12, 12, - 1, - 1, - 1, 12, 12, 12],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1], ]
+
+                map.loadData(map_data);
+                /* collision */
+                /*
+    this function will check collision frame,
+    and return collision map
+    */
+                var makeCollistionMap = function(map_data, collision_fram) {
+                    var output = []; // create output_map_data
+                    for (var i = 0; i < map_data.length; i++) {
+                        output.push([])
+                        for (var j = 0; j < map_data[0].length; j++) {
+                            if (map_data[i][j] == collision_fram) output.push(1)
+                            else output.push(0)
+                        }
+                    }
+                    return output
+                }
+                // var col_map = makeCollistionMap(map_data, 23); // all trees are collision point
+                // map.collisionData = col_map; // add collision to map
+                game.rootScene.addChild(map); // add map to rootScene
+
+
+                var road = new Map(16, 16);
+                road.image = game.assets['map0.png']
+                var road_data = [
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, -1, -1],
+                    [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 3, 3, 3, 3, -1, -1],
+                    [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, -1, -1],
+                    [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 3, 3, 3, 3, -1, -1],
+                    [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, -1, -1],
+                    [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 3, 3, 3, 3, -1, -1],
+                    [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, -1, -1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1],
+                    [-1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1, - 1]
+                ]
+                road.loadData(road_data);
+                game.rootScene.addChild(road);
+            }
+            var makeplayerCastle = function() {
+                var castle = new Sprite(256, 140);
+                castle.hp = 3000;
+                castle.x = -80;
+                castle.y = 64;
+                castle.scale(0.25 * 1.5, 1 / 2.1875 * 1.5);
+                castle.image = game.assets['castle.png'];
+                castle.isattacked = 0;
+                game.rootScene.addChild(castle)
+                return castle
+            }
+
+            // var makeoppCastle = function(){
+            // make knight
+            var makeKnight = function() {
+                var knight = new Sprite(32, 32);
+                knight.id = "knight"
+                knight.hp = 15;
+
+                knight.max_damage = 4;
+                knight.min_damage = 2;
+
+                knight.gold = 10;
+                knight.x = 96;
+                knight.y = 160;
+                knight.vx = 4;
+                knight.by = 0;
+                knight.frame = 18;
+                knight.image = game.assets['chara5.png'];
+                knight.isAttacking = 0; // attack state
+                knight.hasAttacked = 0;
+                game.rootScene.addChild(knight);
+                knight.touched = false
+                knight.isfalling = false; // knight is falling
+                player1_soldiers.push(knight) // add knight
+
+                // touch start
+                knight.addEventListener('touchstart', function(e){
+                    if(!knight.isfalling){
+                        knight.y = e.y;
+                        if(e.x<=knight.x)
+                            knight.x = e.x
+                        knight.touched = true;
+                    }
+                })
+                knight.addEventListener('touchmove', function(e){
+                    knight.isAttacking = 0;
+                    if(!knight.isfalling){
+                        knight.y = e.y;
+                        if(e.x<=knight.x)
+                            knight.x = e.x
+                    }
+                })
+                knight.addEventListener('touchend', function(e){
+                    if(!knight.isfalling){
+                        knight.y = e.y;
+                       if(e.x<=knight.x)
+                            knight.x = e.x
+                        knight.touched = false;
+                    }
+                })
+
+                knight.addEventListener('enterframe', function(e) {
+                    if(knight.touched == false){
+                        if(knight.x >= 27*16){ // jump and die
+                            knight.isfalling = true; // knight is falling
+                            if(knight.y <= 16*16){
+                                knight.y += 1;
+                            }
+                            else{
+                                // soldier is died
+                                knight.hp = -1
+                                game.rootScene.removeChild(knight)
+                            }
+                        }
+                        else{
+                            if (!knight.isAttacking) { // knight is not attacking 
+                                knight.x = (knight.x + knight.vx);
+                                knight.frame = knight.frame + 1;
+                                if (knight.frame >= 23) {
+                                    knight.frame = 18;
+                                }
+                            }
+                            else { // attack
+                                if (knight.frame > 27 || knight.frame < 25) knight.frame = 27
+                                knight.frame = knight.frame - 1
+                                if (knight.frame < 25) knight.frame = 27
+                            }
+                        }
+                    }
+                })
+                return knight
+            }
+
+
+            var makeBear = function() {
+                var bear = new Sprite(32, 32);
+                bear.scale(2, 2)
+
+                bear.id = "bear";
+                bear.hp = 200;
+
+                bear.max_damage = 20;
+                bear.min_damage = 10;
+
+                bear.gold = 100;
+                bear.x = 96;
+                bear.y = 160;
+                bear.vx = 2;
+                bear.by = 0;
+                bear.frame = 18;
+                bear.image = game.assets['space3.png'];
+                bear.isAttacking = 0; // attack state
+                bear.hasAttacked = 0; // has attacked state
+                game.rootScene.addChild(bear);
+                player1_soldiers.push(bear) // add bear
+
+                bear.touched = false
+                bear.isfalling = false; // knight is falling
+                                // touch start
+                bear.addEventListener('touchstart', function(e){
+                    if(!bear.isfalling){
+                        bear.y = e.y;
+                        if(e.x<=bear.x)
+                            bear.x = e.x
+                        bear.touched = true;
+                    }
+                })
+                bear.addEventListener('touchmove', function(e){
+                    bear.isAttacking = 0;
+                    if(!bear.isfalling){
+                        bear.y = e.y;
+                        if(e.x<=bear.x)
+                            bear.x = e.x
+                    }
+                })
+                bear.addEventListener('touchend', function(e){
+                    if(!bear.isfalling){
+                        bear.y = e.y;
+                       if(e.x<=bear.x)
+                            bear.x = e.x
+                        bear.touched = false;
+                    }
+                })
+
+                bear.addEventListener('enterframe', function(e) {
+                    if (!bear.isAttacking) { // bear is not attacking 
+                        bear.x = (bear.x + bear.vx);
+                        bear.frame = bear.frame + 1;
+                        if (bear.frame >= 3) {
+                            bear.frame = 1;
+                        }
+                    }
+                    else { // attack
+                        if (bear.frame > 3 || bear.frame < 2) bear.frame = 2
+                        bear.frame = bear.frame - 1
+                        if (bear.frame < 3) bear.frame = 2
+                    }
+                })
+                return bear
+            }
+
+            /*var makeMage = function() {
+                var mage = new Sprite(32, 32);
+
+                mage.id = "mage";
+                mage.hp = 15;
+                mage.damage = 2;
+                mage.gold = 12;
+                mage.x = 16;
+                mage.y = 160;
+                mage.vx = 0.75;
+                mage.by = 0;
+                mage.frame = 16;
+                mage.image = game.assets['chara6.png'];
+                mage.isAttacking = 0; // attack state
+                game.rootScene.addChild(mage);
+                player1_soldiers.push(mage) // add mage
+                mage.addEventListener('enterframe', function(e) {
+                    if (!mage.isAttacking) { // mage is not attacking 
+                        mage.x = (mage.x + mage.vx);
+                        mage.frame = mage.frame + 1;
+                        if (bear.frame >= 18) {
+                            bear.frame = 16;
+                        }
+                    }
+                    else { // attack
+                        if (mage.frame > 18 || bear.frame < 16) bear.frame = 16
+                        bear.frame = bear.frame - 1
+                        if (bear.frame < 18) bear.frame = 17
+                    }
+                })
+                return mage
+            }*/
+            /*
+                ========================================
+                ================ Enemy =================
+                ========================================
+            */
+
+
+            var makeEnemyKnight = function(dropToYPosition) {
+                if(player_mode === MULTI_PLAYER_MODE)
+                    dropToYPosition = 96;
+                var knight = new Sprite(32, 32);
+                knight.hp = 15;
+                
+                knight.max_damage = 4;
+                knight.min_damage = 2;
+
+                knight.gold = 10;
+                knight.x = 25*16;
+                knight.y = 16;
+                knight.vx = 4;
+                knight.by = 0;
+                knight.frame = 10;
+                knight.image = game.assets['chara7.png'];
+                knight.isAttacking = 0; // attack state
+                knight.hasAttacked = 0; // has attacked state
+                game.rootScene.addChild(knight);
+                player2_soldiers.push(knight) // add knight
+
+                knight.touched = false;
+                knight.hasInitiated = false
+
+                if(player_mode === MULTI_PLAYER_MODE){
+                    // touch start
+                    knight.addEventListener('touchstart', function(e){
+                        if(knight.hasInitiated){
+                            knight.y = e.y;
+                            if(e.x>=knight.x)
+                                knight.x = e.x
+                            knight.touched = true;
+                        }
+                    })
+                    knight.addEventListener('touchmove', function(e){
+                        if(knight.hasInitiated){
+                            knight.isAttacking = 0;
+                            knight.y = e.y;
+                            if(e.x>=knight.x)
+                                knight.x = e.x
+                        }
+                    })
+                    knight.addEventListener('touchend', function(e){
+                        if(knight.hasInitiated){
+                            knight.y = e.y;
+                            if(e.x>=knight.x)
+                                knight.x = e.x
+                            knight.touched = false;
+                        }
+                    })
+                }
+
+                knight.addEventListener('enterframe', function(e) {
+                    if(knight.touched == false){
+                        if(knight.y!=dropToYPosition && knight.hasInitiated == false){ // drop from sky
+                            knight.y = knight.y+16;
+                            knight.x = 25*16
+                        }
+                        else{
+                            knight.hasInitiated = true;
+                        }
+                        if (!knight.isAttacking) { // knight is not attacking
+                            knight.x = (knight.x - knight.vx);
+                            knight.frame = knight.frame + 1;
+                           if (knight.frame >= 15) {
+                                knight.frame = 10;
+                            }
+                        }
+                        else { // attacking
+                            // from 16 to 18
+                            if (knight.frame > 17 || knight.frame < 14) knight.frame = 14
+                            knight.frame = knight.frame + 1
+                            if (knight.frame > 17) knight.frame = 14
+                        }
+                    }
+                })
+                return knight
+            }
+
+
+
+
+
+            /* to do
+            -create castles
+            -how to make AI buy more expensive creeps
+            -
+            */
+
+
+            // Make Enemy Dragon
+            // Make Enemy Dragon
+            var makeEnemyDragon = function(dropToYPosition) {
+                if(player_mode === MULTI_PLAYER_MODE)
+                    dropToYPosition = 96;
+                var dragon = new Sprite(80, 80);
+                dragon.hp = 200;
+                
+                dragon.max_damage = 20;
+                dragon.min_damage = 10;
+
+                dragon.gold = 100;
+                dragon.x = 25*16;
+                dragon.y = 16;
+                dragon.vx = 2;
+                dragon.by = 0;
+                dragon.frame = 10;
+                dragon.image = game.assets['bigmonster1.gif'];
+                dragon.isAttacking = 0; // attack state
+                dragon.hasAttacked = 0; // has attacked state
+                game.rootScene.addChild(dragon);
+                player2_soldiers.push(dragon) // add dragon
+
+                dragon.touched = false;
+                dragon.hasInitiated = false
+
+                if(player_mode === MULTI_PLAYER_MODE){
+                    // touch start
+                    dragon.addEventListener('touchstart', function(e){
+                        if(dragon.hasInitiated){
+                            dragon.y = e.y;
+                            if(e.x>=dragon.x)
+                                dragon.x = e.x
+                            dragon.touched = true;
+                        }
+                    })
+                    dragon.addEventListener('touchmove', function(e){
+                        if(dragon.hasInitiated){
+                            dragon.isAttacking = 0;
+                            dragon.y = e.y;
+                            if(e.x>=dragon.x)
+                                dragon.x = e.x
+                        }
+                    })
+                    dragon.addEventListener('touchend', function(e){
+                        if(dragon.hasInitiated){
+                            dragon.y = e.y;
+                            if(e.x>=dragon.x)
+                                dragon.x = e.x
+                            dragon.touched = false;
+                        }
+                    })
+                }
+
+                dragon.addEventListener('enterframe', function(e) {
+                    if(dragon.touched == false){
+                        if(dragon.y!=dropToYPosition && dragon.hasInitiated == false){ // drop from sky
+                            dragon.y = dragon.y+16;
+                            dragon.x = 25*16
+                        }
+                        else{
+                            dragon.hasInitiated = true;
+                        }
+                        if (!dragon.isAttacking) { // dragon is not attacking
+                            dragon.x = (dragon.x - dragon.vx);
+                            dragon.frame = dragon.frame + 1;
+                           if (dragon.frame >= 5) {
+                                dragon.frame = 3;
+                            }
+                        }
+                        else { // attacking
+                            // from 16 to 18
+                            if (dragon.frame > 10 || dragon.frame < 8) dragon.frame = 8
+                            dragon.frame = dragon.frame + 1
+                            if (dragon.frame > 10) dragon.frame = 8
+                        }
+                    }
+                })
+                return dragon
+            }
+
+
+
+
+
+            
+            var clickknight = new Sprite(32, 32);
+            var clickbear = new Sprite(32, 32);
+
+            // player1 money
+            var player1_money_label = new Label('Gold: 10')
+            player1_money_label.x = 32 + 32*2
+            player1_money_label.y = 16 * 13
+
+            var player2_money_label = new Label('Gold: 10')
+            player2_money_label.x = 32
+            player2_money_label.y = 2*16
+
+
+            var player2_clickknight = new Sprite(32, 32);
+            var player2_clickdragon = new Sprite(80, 80);
+
+            // player 1 score
+            var Player1_Score_Label = new Label("Player1 Score: " + parseInt(Player1_Score))
+            Player1_Score_Label.x = 96+32+32+32+32 + 32*2;
+            Player1_Score_Label.y = 16*13;
+
+            // player2 score
+            var Player2_Score_Label = new Label("Player2 Score: " + parseInt(Player2_Score))
+            Player2_Score_Label.x = 96+32+32+32+32;
+            Player2_Score_Label.y = 2*16;
+
+
+            var menu_scene = new Scene();
+            menu_scene.backgroundColor = "grey"
+
+            var single_player_button = new Label('Single Player')
+            single_player_button.x = 32*6;
+            single_player_button.y = 32;
+            single_player_button.color = "orange"
+            single_player_button.addEventListener('touchstart', function(){
+                player_mode = SINGLE_PLAYER_MODE
+
+                game.rootScene.addChild(player1_money_label);
+                game.rootScene.addChild(Player1_Score_Label);
+                game.rootScene.addChild(clickknight);
+                game.rootScene.addChild(clickbear);
+                
+                alert("Single Player Mode:\nYou can touch the icon below to buy\nsoldiers. And you can drag soldier to move it up or down.\nEnjoy")
+
+                game.popScene(menu_scene)
+            })
+
+            var multiplayer_button = new Label('Multi player')
+            multiplayer_button.x = 32*6;
+            multiplayer_button.y = 32*3;
+            multiplayer_button.color = "orange"
+            multiplayer_button.addEventListener('touchstart', function(){
+                player_mode = MULTI_PLAYER_MODE
+
+                game.rootScene.addChild(player1_money_label);
+                game.rootScene.addChild(Player1_Score_Label);
+                game.rootScene.addChild(clickknight);
+                game.rootScene.addChild(clickbear);
+
+                game.rootScene.addChild(player2_money_label)
+                game.rootScene.addChild(Player2_Score_Label)
+                game.rootScene.addChild(player2_clickknight)
+                game.rootScene.addChild(player2_clickdragon)
+
+            
+
+                game.popScene(menu_scene)
+            })
+
+            var introduction_button = new Label("introduction");
+            introduction_button.color = 'orange'
+            introduction_button.x = 32 * 6;
+            introduction_button.y = 32 * 5;
+            introduction_button.addEventListener('touchstart', function(){
+                window.location = "./introduction.html"
+            })
+            
+            var version_label = new Label("Version: 0.01");
+            version_label.color = 'orange';
+            version_label.x = 32 * 6;
+            version_label.y = 32 * 7
+            version_label.addEventListener('touchstart', function(){
+                alert("No... Don't touch me. go touch Aaron");
+            })
+
+            menu_scene.addChild(single_player_button);
+            menu_scene.addChild(multiplayer_button);
+            menu_scene.addChild(introduction_button);
+            menu_scene.addChild(version_label);
+            // game.loadingScene = menu_scene;
+            
+            game.pushScene(menu_scene)
+
+
+
+            game.onload = function() {
+
+                console.log("Start Game") // start game
+                // on load
+                createMap();
+               
+                var castle = makeplayerCastle();
+                var castle_hp_label = new Label("Castle HP: " + castle.hp)
+                castle_hp_label.x = 96 + 32*2
+                castle_hp_label.y = 16 * 13
+                game.rootScene.addChild(castle_hp_label);
+
+
+                // set click knight
+                clickknight.x = 16;
+                clickknight.y = 16*13;
+                clickknight.frame = 19;
+                clickknight.image = game.assets['chara5.png'];
+                clickknight.addEventListener('touchstart', function() {
+                    if (player1_money >= buy['knight']) {
+                        player1_money = player1_money - buy['knight'] // buy knight
+                        makeKnight() // make knight
+                    }
+                });
+
+                // set click bear
+                clickbear.x = 48;
+                clickbear.y = 16*13;
+                clickbear.frame = 1;
+                clickbear.image = game.assets['space3.png'];
+                clickbear.addEventListener('touchstart', function() {
+                    if (player1_money >= buy['bear']) {
+                        player1_money = player1_money - buy['bear'] // buy bear
+                        makeBear() // make bear
+                    }
+                });
+
+                // player2 init
+                player2_clickknight.x = width - 32;
+                player2_clickknight.y = 16*2;
+                player2_clickknight.frame = 10;
+                player2_clickknight.image = game.assets['chara7.png'];
+                player2_clickknight.addEventListener('touchstart', function() {
+                    if (player2_money >= buy['knight']) {
+                        player2_money = player2_money - buy['knight'] // buy knight
+                        makeEnemyKnight() // make knight
+                    }
+                });
+
+                // player 2 dragon init
+                player2_clickdragon.x = width-32*3;
+                player2_clickdragon.y = 16;
+                player2_clickdragon.frame = 10;
+                player2_clickdragon.image = game.assets['bigmonster1.gif']
+                player2_clickdragon.scale(0.5 ,0.5)
+                player2_clickdragon.addEventListener('touchstart', function() {
+                    if (player2_money >= buy['dragon']) {
+                        player2_money = player2_money - buy['dragon'] // buy knight
+                        makeEnemyDragon() // make knight
+                    }
+                });
+
+
+                /*var clickmage = new Sprite(32, 32);
+                clickmage.x = 64;
+                clickmage.y = 16;
+                clickmage.frame = 1;
+                clickmage.image = game.assets['chara6.png'];
+                clickmage.addEventListener('touchstart', function() {
+                    if (player1_money >= buy['mage']) {
+                        player1_money = player1_money - buy['mage'] // buy mage
+                        makeMage() // mak;e mage
+                    }
+                });*/
+
+                game.addEventListener('enterframe', function() {
+
+                    // simple AI
+                    if(player_mode === SINGLE_PLAYER_MODE){
+                        // easy player2
+                        // enemy buy knight
+                        if (player2_money >= buy['dragon']){
+                            player2_money = player2_money - buy['dragon'] // buy dragon
+                            makeEnemyDragon(randomlyChooseLine());
+                            // buy knight
+                            if(Math.random(0,1)>0.5){
+                                makeEnemyKnight(randomlyChooseLine());
+                            }
+                        }
+                        if (player2_money >= buy['knight'] && Math.random(0,1) - player2_money_add >0.6) {
+                            player2_money = player2_money - buy['knight']; // decrease player2 money
+                            makeEnemyKnight(randomlyChooseLine());
+                            // make enemy knight
+                        }
+                        player2_money_add = player2_money_add + 0.0005
+                        player2_money = player2_money + player2_money_add
+                    }
+                    else{
+                        player2_money = player2_money + 0.05
+                        player2_money_label.text = "Gold: " + parseInt(player2_money)
+                    }
+                    player1_money = player1_money + 0.05
+                    player1_money_label.text = "Gold: " + parseInt(player1_money)
+                    
+                    /*
+                        Implement attack
+                    */
+                    for (var i = 0; i < player1_soldiers.length; i = i + 1){
+                        var player1_s = player1_soldiers[i];
+                        if(player1_s.touched) continue;
+                        if(player1_s.hp<=0) continue;
+                        for(var j = 0; j < player2_soldiers.length; j = j + 1) {
+                            var player2_s = player2_soldiers[j];
+                            if(player2_s.hp<=0) continue;
+                            if(player1_s.intersect(player2_s)){
+                                player1_s.isAttacking = 1
+                                player2_s.hp = player2_s.hp - makeDamage(player1_s)
+                                if (player2_s.hp<=0){
+                                    // update player1 score and money
+                                    Player1_Score += player2_s.gold;
+                                    Player1_Score_Label.text = "Score: "+parseInt(Player1_Score)
+                                    player1_money += player2_s.gold;
+                                    player1_money_label.text = "Gold: "+parseInt(player1_money)
+
+                                    // level up
+                                    player1_s.max_damage+=2; // increase damage
+                                    player1_s.min_damage+=1;
+                                    player1_s.hp+=2
+
+                                    var temp_label = new Label('level up!')
+                                    temp_label.x = player1_s.x;
+                                    temp_label.y = player1_s.y - 16;
+                                    game.rootScene.addChild(temp_label)
+                                    setTimeout(function(){
+                                        game.rootScene.removeChild(temp_label)
+                                    }, 1500)
+
+                                    console.log("damage: "+ player1_s.max_damage +" "+player1_s.min_damage +" hp: "+player1_s.hp)
+
+                                    game.rootScene.removeChild(player2_s);
+                                    player1_s.isAttacking = 0;
+                                }
+                                if (player2_s.hasAttacked) 
+                                    {
+                                        continue;
+                                    }
+                                else{
+                                    player2_s.isAttacking = 1;
+                                    player2_s.hasAttacked = 1;
+                                    player1_s.hp = player1_s.hp - makeDamage(player2_s) ;
+                                    if(player2_s.intersect(player1_s)===false){
+                                        player2_s.isAttacking = 0;
+                                        player2_s.hasAttacked = 0;
+                                    }
+                                    if(player1_s.hp<=0){
+                                        // show message only in multiplayer mode
+                                        if(player_mode === MULTI_PLAYER_MODE){
+                                            // update player2 score and money
+                                            Player2_Score +=player1_s.gold
+                                            Player2_Score_Label.text = "Score: "+parseInt(Player2_Score);
+                                            player2_money += player1_s.gold
+                                            player2_money_label.text = "Gold: "+parseInt(player2_money);
+
+                                              // level up
+                                            player2_s.max_damage+=2; // increase damage
+                                            player2_s.min_damage+=1;
+                                            player2_s.hp+=2
+
+                                            var temp_label = new Label('level up!')
+                                            temp_label.x = player2_s.x;
+                                            temp_label.y = player2_s.y - 16;
+                                            game.rootScene.addChild(temp_label)
+                                            setTimeout(function(){
+                                                game.rootScene.removeChild(temp_label)
+                                            }, 1500)
+                                        }
+
+
+                                        player2_s.isAttacking = 0;
+                                        game.rootScene.removeChild(player1_s);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    /*
+                        check enemy attack castle
+                    */
+                    for(var i = 0; i < player2_soldiers.length; i++){
+                        var player2_s = player2_soldiers[i];
+                        if(player2_s.hp<=0) continue;
+                        if(player2_s.hasAttacked) continue;
+                        if(player2_s.x<=80){
+                            player2_s.isAttacking = 1; // set is attacking
+                            Player2_Score += 0.05; // attack castle, add score
+                            castle.hp = castle.hp - makeDamage(player2_s);
+                            castle_hp_label.text = "Castle HP: " + parseInt(castle.hp);
+                            if(castle.hp<=0){
+                                castle_hp_label.text = "GameOver"
+                                game.assets['gameover.wav'].play();
+                                endgame();
+                                game.end();
+                            }
+                        }
+                    }
+                    /*
+                        restore hasAttacked
+                    */
+                    for(var i = 0; i < player2_soldiers.length; i++){
+                        player2_soldiers[i].hasAttacked = 0;
+                    }
+                    
+                    
+                })
+
+                //game.rootScene.addChild(clickmage);
+            }
+            game.fps = 15;
+            //game.scale = 2;
+            game.start();
+        }
+    </script>
+
+</html>
